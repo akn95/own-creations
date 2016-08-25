@@ -1,0 +1,343 @@
+<html>
+<head>
+	<title>Ball Rebound Game</title>
+	
+	<style type="text/css">
+	#canva{
+		position: absolute;
+		margin: auto;
+		top:10px;
+		bottom: 0px;
+		left: 0px;
+		right:0px;
+		border: 2px solid black;
+	}
+	</style>
+
+	<script type="text/javascript">
+	var value;
+	var canva;
+	var score;
+	var frames,key_state;
+	var ctx;
+	var wt=10,ht=10;
+	var BLOCKS=1,
+		DVAL=0,
+		BAR=2,
+		BALL=3,
+		ROWS,
+		COLUMN;
+	var KEY_LEFT=37,
+		KEY_RIGHT=39,
+		LEFT=25,
+		RIGHT=26;
+	var request;
+	var qu={
+		qu_n:null,
+		init:function(){
+			this.qu_n=new Array(100);
+			this.sizes=new Array(100);
+			for(var y=0;y<100;y++)
+			{
+				this.qu_n[y]=new Array(100);
+				this.sizes[y]=0;
+			}
+		},
+		insert:function(val,x,y){
+
+			this.qu_n[val].unshift({x:x,y:y});
+			this.sizes[val]++;
+		},
+		get:function(val)
+		{
+			return this.qu_n[val][this.sizes[val]-1];
+		},
+		remove:function(val){
+			this.qu_n[val].pop();
+			this.sizes[val]--;
+		}
+	}
+	var box={
+		width:null,
+		height:null,
+		g_box:null,
+		init:function(val,rw,cl){
+			this.width=cl;
+			this.height=rw;
+			this.g_box=new Array(100);
+			for(var y=0;y<rw;y++)
+			{
+				this.g_box[y]=new Array(100);
+				for(var x=0;x<cl;x++)
+				{
+					this.g_box[y].unshift({x:val,y:0});
+				}
+			}
+		},
+
+		set:function(val,y,x,num)
+		{
+			this.g_box[y][x].x=val;//storing value of element
+			this.g_box[y][x].y=num;//storing the queue number
+		},
+
+		get:function(y,x)
+		{
+			return this.g_box[y][x];
+		}
+	}
+
+	var bar={
+		xleft:null,
+		yright:null
+	}
+	var ball={
+		x:null,
+		y:null,
+		r:null,
+		vx:null,
+		vy:null	
+	}
+	var img=null;
+	var mains=function()
+	{
+		canva=document.getElementById('canva');
+		ctx=canva.getContext('2d');
+		img=document.getElementById('block');
+		//alert(ROWS);
+		ROWS=canva.height/ht;
+		COLUMN=canva.width/wt;
+
+
+		initialize(ROWS,COLUMN,DVAL);
+		frames=0;
+		key_state={};
+
+		document.addEventListener("keydown",function(evt){			//adding event listener for key pressed
+			key_state[evt.keyCode]=true;
+		});
+
+		document.addEventListener("keyup",function(evt){
+			delete key_state[evt.keyCode];
+		});
+		loop();
+
+	}
+	var initialize=function(rows,colums,dval){
+		qu.init();
+
+		box.init(dval,rows,colums);
+		score=0;
+		var county=0;
+		var countx=0;
+		for(var x=6;x<(colums-7);x++)
+		{
+			if(x%3==0)
+				countx++;
+			county=countx-9;
+			for(var y=6;y<(22);y++)
+			{
+				if(y%2==0)
+					county+=9;
+				box.set(BLOCKS,y,x,county);
+			}
+		}
+		county=0;
+		countx=0;
+
+		//Initializing queues
+		for(var y=0;y<ROWS;y++)
+		{
+			county++;
+			countx=0;
+			for(var x=0;x<COLUMN;x++)
+			{
+				countx++;
+				if(box.get(y,x).x==BLOCKS && (countx%3==0) && (county%2==0) && (county!=0) && (countx!=0))
+				{
+					//alert(countx);
+					for(var i=x-2;i<=x;i++)
+					{
+						//alert(box.get(y,x).y);
+						qu.insert(box.get(y,x).y,i,y);
+						qu.insert(box.get(y,x).y,i,y-1);
+						//qu.insert(1,1,1);
+					}
+				}
+			}
+		}
+
+		//initializing bar
+		bar.xleft=11;
+		bar.xright=colums-12;
+
+		//initializing ball
+		ball.x=20;
+		ball.y=40;
+		ball.r=5;
+		ball.vx=1;
+		ball.vy=1;
+
+
+		box.set(BALL,ball.y,ball.x,0);
+
+		for(var x=bar.xleft;x<=(bar.xright);x++)
+			box.set(BAR,45,x,0);
+		
+	}
+
+	var loop=function(){
+
+		request=setTimeout(loop,30);
+		update();
+
+	}
+
+	var update=function(){
+		frames++;
+		if(1)
+		{
+			if(key_state[KEY_LEFT] && bar.xleft>0)
+			{
+				for(var i=0;i<2;i++)
+				{
+					bar.xleft--;
+					bar.xright--;
+					box.set(BAR,45,bar.xleft,0);
+					box.set(DVAL,45,bar.xright+1,0);
+					
+				}			
+			}
+			else if(key_state[KEY_RIGHT] && bar.xright<COLUMN)
+			{
+				for(var i=0;i<2;i++)
+				{
+					bar.xright++;
+					bar.xleft++;
+					box.set(BAR,45,bar.xright,0);
+					box.set(DVAL,45,bar.xleft-1,0);
+					
+				}
+			}
+
+			if(ball.x+ball.vx<0 || ball.x+ball.vx>=COLUMN)
+				ball.vx=-ball.vx;
+			if(ball.y+ball.vy<0)
+				ball.vy=-ball.vy;
+			if( ball.y+ball.vy>=ROWS)
+			{
+				clearTimeout(request);
+				request=undefined;
+				alert("Game ended\nYour Score: "+score);
+				mains();
+			}
+
+			if(box.get(ball.y,ball.x+ball.vx).x==BAR)
+			{
+				ball.vx=-ball.vx;
+				box.set(DVAL,ball.y,ball.x,0);
+			}
+			else if(box.get(ball.y+ball.vy,ball.x).x==BAR)
+			{
+				ball.vy=-ball.vy;
+				box.set(DVAL,ball.y,ball.x,0);
+			}
+			else if(box.get(ball.y,ball.x+ball.vx).x==BLOCKS)
+			{
+				score++;
+				box.set(DVAL,ball.y,ball.x,0);
+				value=box.get(ball.y,ball.x+ball.vx).y;
+				for(var i=0;i<6;i++)
+				{
+					box.set(DVAL,qu.get(value).y,qu.get(value).x,0);
+					qu.remove(value);
+				}
+				ball.vx=-ball.vx;
+			}
+			else if(box.get(ball.y+ball.vy,ball.x).x==BLOCKS)
+			{
+				score++;
+				box.set(DVAL,ball.y,ball.x,0);
+				value=box.get(ball.y+ball.vy,ball.x).y;
+				//alert(value);
+				for(var i=0;i<6;i++)
+				{
+					box.set(DVAL,qu.get(value).y,qu.get(value).x,0);
+					qu.remove(value);
+				}
+				ball.vy=-ball.vy;
+			}
+			else
+			{
+				box.set(DVAL,ball.y,ball.x,0);
+			}
+
+			
+			ball.x+=ball.vx;
+			ball.y+=ball.vy;
+
+			box.set(BALL,ball.y,ball.x,0);
+			draw();
+		}	
+		
+	}
+	var draw=function(){
+		var countx=0;
+		var county=0;
+		//alert(COLUMN);
+		for(var y=0;y<ROWS;y++)
+		{
+			county++;
+			countx=0;
+			for(var x=0;x<COLUMN;x++)
+			{
+				countx++;
+				if(box.get(y,x).x==BLOCKS && (countx%3==0) && (county%2==0) && (county!=0) && (countx!=0))
+				{
+					ctx.drawImage(img,(x-2)*wt,(y-1)*ht,wt*3,ht*2);
+				}
+				else if(box.get(y,x).x==BAR)
+				{
+					ctx.fillStyle="#ff5050";
+					ctx.fillRect(x*wt,y*ht,wt,ht);
+				}
+				else if(box.get(y,x).x==BALL)
+				{
+					ctx.fillStyle="#ffa31a";
+					ctx.fillRect(x*wt,y*ht,wt,ht);
+					ctx.fillStyle="#ff00ff";
+					ctx.strokeStyle="#ff00ff";
+					ctx.beginPath();
+					ctx.arc(x*wt+5,y*ht+5,ball.r,0,2*Math.PI);
+					ctx.stroke();
+					ctx.fill();
+				}
+				else
+				{
+					ctx.fillStyle="#ffa31a";
+					//ctx.strokeStyle="grey";
+					ctx.fillRect(x*wt,y*ht,wt,ht);
+				}
+
+				
+				
+			}
+		}
+
+		ctx.fillStyle="Black";
+
+		ctx.fillText("Score: "+score,20,40);
+	}
+	
+
+	window.onload=function()
+	{
+		mains();
+	}
+	</script>
+</head>
+<body>
+	<canvas id="canva" width="400px" height="600px"></canvas>
+	<img src="rectangle.jpg" id="block" style="display:none">
+</body>
+</html>
